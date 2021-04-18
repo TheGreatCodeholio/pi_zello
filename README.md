@@ -38,3 +38,6 @@ For Zello consumer network:
 ## Installation
 - `pip3 install -r requirements.txt`
 - `sudo apt install portaudio19-dev && sudo apt install opus-tools`
+
+## Running
+- `python3 ZelloCalls.py`
