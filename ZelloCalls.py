@@ -4,6 +4,7 @@ import struct
 import wave
 import time
 import os
+import _thread
 import subprocess
 import datetime
 from Crypto.PublicKey import RSA
@@ -14,6 +15,7 @@ import etc.config as config
 from lib.zello_handler import ZelloSend
 import base64
 import json
+import asyncio
 
 Threshold = config.vox_volume_threshold
 
@@ -28,6 +30,7 @@ TIMEOUT_LENGTH = config.vox_delay
 RECORDING_LENGTH_THRESHOLD = config.vox_length_threshold
 f_name_directory = config.record_path + "/" + config.channel.replace(" ", "")
 
+loop = asyncio.get_event_loop()
 
 class Recorder:
 
@@ -64,13 +67,17 @@ class Recorder:
         while current <= end:
 
             data = self.stream.read(chunk)
-            if self.rms(data) >= Threshold: end = time.time() + TIMEOUT_LENGTH
+            if self.rms(data) >= Threshold:
+                end = time.time() + TIMEOUT_LENGTH
 
             current = time.time()
             rec.append(data)
         rec_length = time.time() - rec_start
         config.token = self.create_token()
-        self.write(rec_length, b''.join(rec))
+        rec_thread = Thread(target=self.write, args=(rec_length, b''.join(rec)))
+        rec_thread.daemon = True
+        rec_thread.start()
+        print('Returning to listening')
 
     def write(self, rec_length, recording):
         if rec_length > RECORDING_LENGTH_THRESHOLD:
@@ -99,11 +106,9 @@ class Recorder:
                 shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
             if os.path.exists(file_path + "/" + file_name + ".wav"):
                 os.remove(file_path + "/" + file_name + ".wav")
-
             print("Sending To Zello")
-            ZelloSend(config, file_path + "/" + file_name + ".opus").zello_init_upload()
+            ZelloSend(config, file_path + "/" + file_name + ".opus").zello_init_upload(loop)
 
-            print('Returning to listening')
         else:
             print("Recording too short not saving.")
 

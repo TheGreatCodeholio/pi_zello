@@ -16,8 +16,7 @@ class ZelloSend:
         self.zello_ws = None
         self.zello_stream_id = None
 
-    def zello_init_upload(self):
-        loop = asyncio.get_event_loop()
+    def zello_init_upload(self, loop):
         try:
             loop.run_until_complete(ZelloSend(self.config, self.audio).zello_stream_audio_to_channel())
         except KeyboardInterrupt:
@@ -43,7 +42,7 @@ class ZelloSend:
             print("Stopped by user")
             loop.close()
         finally:
-            print("Closing....")
+            print("Stream complete.")
             # loop.close()
 
     async def zello_stream_audio_to_channel(self):
